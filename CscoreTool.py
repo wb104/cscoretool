@@ -2,6 +2,7 @@ import numpy
 
 import time
 
+import CscoreIo
 import CscoreUtil
 
 MAXC = 0.9999  # not sure really need this
@@ -65,7 +66,7 @@ def readNccFile(nccFile, chromoAnalysisDict):
         pos_b = int(pos_b)
         CscoreUtil.updateInteractions(chromoAnalysis.interactions, pos_a, pos_b, chromoAnalysis.chromoSize,
                                       chromoAnalysis.windowSize, chromoAnalysis.dBinMin)
-  
+
 class ChromoAnalysis:
   
   def __init__(self, chromo, chromoSize, windowSize, dBinMin):
@@ -158,42 +159,50 @@ class ChromoAnalysis:
     print('cscoreTime = {}'.format(cscoreTime))
     print('likelihoodTime = {}'.format(likelihoodTime))
         
-def main(chromoSizeFile, inputSummaryFile, outputPrefix, windowSize, minDis):
+def main(chromoSizeFile, inputContactsFile, outputCscoreFile, windowSize, minDis, baseCscoreFile = None):
   
   dBinMin = calcBinFromD(minDis)
   print('dBinMin = {}'.format(dBinMin))
   
   chromoSizeDict = readChromoSizes(chromoSizeFile)  # could skip this step and use largest position found...
     
+  if baseCscoreFile:
+    baseCscoreDict = CscoreIo.readCscoreFile(baseCscoreFile, windowSize)
+  else:
+    baseCscoreDict = {}
+
   chromoAnalysisDict = {}
   for chromo in chromoSizeDict:
     chromoAnalysisDict[chromo] = ChromoAnalysis(chromo, chromoSizeDict[chromo], windowSize, dBinMin)
   
-  if inputSummaryFile.endswith('.ncc'):
-    readNccFile(inputSummaryFile, chromoAnalysisDict)
+  if inputContactsFile.endswith('.ncc'):
+    readNccFile(inputContactsFile, chromoAnalysisDict)
   else:
-    readInteractions(inputSummaryFile, chromoAnalysisDict)
+    readInteractions(inputContactsFile, chromoAnalysisDict)
     
   for chromo in sorted(chromoSizeDict):
     chromoAnalysisDict[chromo].run()
     
-    outputFile = '%s_%s_out.txt' % (outputPrefix, chromo)
-    with open(outputFile, 'w') as fp:
-      for score in chromoAnalysisDict[chromo].cscore:
-        fp.write('{}\n'.format(score))
+  cscoreDict = {}
+  for chromo in sorted(chromoSizeDict):
+    cscoreDict[chromo] = chromoAnalysisDict[chromo].cscore
+    
+  CscoreIo.writeCscoreFile(outputCscoreFile, cscoreDict, windowSize, baseCscoreDict)
   
 if __name__ == '__main__':
   
   import sys
 
-  if len(sys.argv) != 6:
-    print('Arguments: <chrSizes.txt> <input.summary> <OutputPrefix> <windowSize> <minDis>')
+  if len(sys.argv) not in (6, 7):
+    print('Arguments: <chromoSizes.txt> <inputContactsFile> <outputCscoreFile> <windowSize> <minDis> [ <baseCscore.txt> ]')
     sys.exit()
   
-  chromoSizeFile, inputSummaryFile, outputPrefix, windowSize, minDis = sys.argv[1:]
+  chromoSizeFile, inputContactsFile, outputCscoreFile, windowSize, minDis = sys.argv[1:6]
+  baseCscoreFile = None if len(sys.argv) == 6 else sys.argv[6]
+  
   windowSize = int(windowSize)
   minDis = int(minDis)
   
-  main(chromoSizeFile, inputSummaryFile, outputPrefix, windowSize, minDis)
+  main(chromoSizeFile, inputContactsFile, outputCscoreFile, windowSize, minDis, baseCscoreFile)
   
   
