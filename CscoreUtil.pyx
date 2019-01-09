@@ -14,7 +14,7 @@ cdef int calcBinFromIndex(int i, int j, int windowSize, int dBinMin):
 
   return dBin
   
-def updateInteractions(ndarray[int, ndim=2] interactions,
+def updateInteractions(ndarray[int, ndim=2] interactions, ndarray[int, ndim=1] interactionsSum,
                        int position1, int position2, int chromoSize, int windowSize, int dBinMin):
     
   if position1 > chromoSize or position2 > chromoSize:
@@ -25,11 +25,12 @@ def updateInteractions(ndarray[int, ndim=2] interactions,
   ind1 = position1 // windowSize
   ind2 = position2 // windowSize
   
-  dBin = calcBinFromIndex(ind1, ind2, windowSize, dBinMin)
-  if dBin >= 0:
-    interactions[ind1][ind2] += 1
-    if ind1 != ind2:
-      interactions[ind2][ind1] += 1
+  if interactionsSum[ind1] > 0 and interactionsSum[ind2] > 0:
+    dBin = calcBinFromIndex(ind1, ind2, windowSize, dBinMin)
+    if dBin >= 0:
+      interactions[ind1][ind2] += 1
+      if ind1 != ind2:
+        interactions[ind2][ind1] += 1
 
 def initDCount(ndarray[int, ndim=1] interactionDCount,
                ndarray[int, ndim=2] interactions,
