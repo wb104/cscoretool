@@ -152,8 +152,12 @@ class ChromoAnalysis:
   def updateInteractionsSum(self, position):
     
     ind = position // self.windowSize
-    self.interactionsSum[ind] += 1
-    
+    try:
+      self.interactionsSum[ind] += 1
+    except:
+      print('position = {}, ind = {}, windowSize = {}, numWindows = {}, chromo= {}'.format(position, ind, self.windowSize, self.numWindows, self.chromo))
+      raise
+      
   def updateInteractions(self, position1, position2):
     
     CscoreUtil.updateInteractions(self.interactions, self.interactionsSum,
@@ -200,6 +204,9 @@ class ChromoAnalysis:
     
     print('Chromo {} has {} windows and {} interactions'.format(self.chromo, self.numWindows, numpy.sum(self.interactionCount)))
     
+    if numpy.sum(self.interactionCount) == 0:
+      return
+
     logLikelihood = -1.0e308
    
     hTime = biasTime = cscoreTime = likelihoodTime = 0
